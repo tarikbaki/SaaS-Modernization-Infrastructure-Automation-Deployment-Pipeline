@@ -88,7 +88,7 @@ resource "aws_iam_role_policy_attachment" "ssm"  { role=aws_iam_role.ec2_role.na
 resource "aws_iam_role_policy_attachment" "ecr"  { role=aws_iam_role.ec2_role.name policy_arn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly" }
 resource "aws_iam_instance_profile" "profile"    { name="${var.name}-ec2-profile" role=aws_iam_role.ec2_role.name }
 
-# ECR repo
+# ECR_repo
 resource "aws_ecr_repository" "repo" {
   name = "${var.name}-app"
   image_scanning_configuration { scan_on_push = true }
