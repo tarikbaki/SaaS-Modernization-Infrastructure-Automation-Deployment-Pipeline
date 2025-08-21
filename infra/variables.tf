@@ -1,38 +1,77 @@
 variable "name" {
   type        = string
-  description = "Base name prefix for resources"
-  default     = "saas"
+  default     = "saas-modernization-infra--prod"
+  description = "Name prefix; keep short (ALB/TG 32-char limit)."
 }
 
 variable "aws_region" {
   type        = string
-  description = "AWS region to deploy into"
+  description = "AWS region to deploy into."
 }
 
 variable "vpc_cidr" {
-  type        = string
-  description = "VPC CIDR block"
-  default     = "10.0.0.0/16"
-
-  validation {
-    condition     = can(cidrnetmask(var.vpc_cidr))
-    error_message = "vpc_cidr must be a valid CIDR."
-  }
+  type    = string
+  default = "10.0.0.0/16"
 }
 
 variable "instance_type" {
-  type        = string
-  description = "EC2 instance type for app servers"
-  default     = "t3.micro"
+  type    = string
+  default = "t3.micro"
 }
 
 variable "ami_id" {
   type        = string
-  description = "AMI ID override; leave empty to use latest Amazon Linux 2"
-  default     = ""
+  default     = "ami-08c40ec9ead489470"
+  description = "Optional explicit AMI id; if empty, AL2 latest will be used."
 }
 
 variable "acm_certificate_arn" {
   type        = string
-  description = "ACM certificate ARN for ALB HTTPS (443). Must be in the same region."
+  description = "ACM certificate ARN used by ALB HTTPS (443)"
+}
+
+# --- toggles & sizes for DB/Cache ---
+variable "create_aurora" {
+  type    = bool
+  default = true
+}
+
+variable "create_redis" {
+  type    = bool
+  default = true
+}
+
+variable "db_engine" {
+  type    = string
+  default = "aurora-mysql"
+}
+
+variable "db_engine_version" {
+  type    = string
+  default = "8.0.mysql_aurora.3.04.1"
+}
+
+variable "db_name" {
+  type    = string
+  default = "appdb"
+}
+
+variable "db_instance_class" {
+  type    = string
+  default = "db.t3.medium"
+}
+
+variable "redis_node_type" {
+  type    = string
+  default = "cache.t3.micro"
+}
+
+variable "redis_engine_ver" {
+  type    = string
+  default = "7.0"
+}
+
+variable "redis_replicas" {
+  type    = number
+  default = 1
 }
