@@ -52,7 +52,7 @@ resource "aws_security_group" "app_sg" {
   }
 
   ingress {
-    description     = "HTTPS from ALB (optional; for ALB->EC2 TLS)"
+    description     = "HTTPS from ALB"
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
