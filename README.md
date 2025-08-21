@@ -52,4 +52,3 @@ Pipeline config is under `.github/workflows/ci-cd.yml`.
 cd infra
 terraform init
 terraform apply -var="name=saas" -var="aws_region=us-east-1"
-```
