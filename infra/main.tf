@@ -164,6 +164,6 @@ resource "aws_lb_listener_rule" "staging_rule" {
   condition { path_pattern { values=["/staging*", "/stg*"] } }
 }
 
-# SSM parameters for image tags (updated by pipeline)
+# SSM parameters for image tags (updated by pipeline )
 resource "aws_ssm_parameter" "img_tag_prod" { name="/saas/${var.name}/imageTag/prod" type="String" value="latest" }
 resource "aws_ssm_parameter" "img_tag_stg"  { name="/saas/${var.name}/imageTag/staging" type="String" value="latest" }
