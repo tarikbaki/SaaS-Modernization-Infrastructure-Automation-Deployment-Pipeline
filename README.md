@@ -27,7 +27,10 @@ This repository contains **Terraform IaC** and a **GitHub Actions pipeline** to 
 - **ECR**: container image repository  
 - **SSM Parameter Store**: keeps current image tag for staging and production  
 
-saas-modernization-infra/
+### Project Structure
+
+```bash
+saas-modernization-infra-v3-prod/
 ├─ infra/
 │  ├─ provider.tf                 # TF & AWS provider
 │  ├─ variables.tf                # name, aws_region, vpc_cidr, ami, instance_type
@@ -46,6 +49,7 @@ saas-modernization-infra/
 │  └─ index.html                  # static placeholder
 │
 └─ README.md                      # setup, secrets, deploy/rollback, security notes
+```
 
 Terraform code is under `/infra`.
 
