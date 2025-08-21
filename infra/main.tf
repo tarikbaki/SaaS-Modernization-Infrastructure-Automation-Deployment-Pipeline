@@ -63,7 +63,7 @@ resource "aws_subnet" "private" {
 # HA NAT: one per AZ (costly but resilient). If you want single NAT, set count=1 and use public[0].
 resource "aws_eip" "nat" {
   count  = 2
-  domain = "vpc" # vpc = true yerine
+  domain = "vpc" # vpc = instead of true
 }
 
 
@@ -189,40 +189,40 @@ resource "aws_instance" "prod" {
 # ALB + Target Groups + Listeners (HTTPS + redirect)
 ############################################
 resource "aws_lb" "alb" {
-  name               = "${local.short_name}-alb-${random_string.suffix.result}"  # ~ 20+4+5=29
+  name               = "${local.short_name}-alb-${random_string.suffix.result}" # ~ 20+4+5=29
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
   subnets            = [for s in aws_subnet.public : s.id]
 }
 
 resource "aws_lb_target_group" "tg_prod" {
-  name        = "${local.short_name}-tg-p-${random_string.suffix.result}"        # kısa
+  name        = "${local.short_name}-tg-p-${random_string.suffix.result}" # kısa
   port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
   target_type = "instance"
   health_check {
-    path = "/"
-    matcher = "200-399"
-    interval = 15
-    timeout = 5
-    healthy_threshold = 2
+    path                = "/"
+    matcher             = "200-399"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
     unhealthy_threshold = 2
   }
 }
 
 resource "aws_lb_target_group" "tg_stg" {
-  name        = "${local.short_name}-tg-s-${random_string.suffix.result}"        # kısa
+  name        = "${local.short_name}-tg-s-${random_string.suffix.result}" # kısa
   port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
   target_type = "instance"
   health_check {
-    path = "/"
-    matcher = "200-399"
-    interval = 15
-    timeout = 5
-    healthy_threshold = 2
+    path                = "/"
+    matcher             = "200-399"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
     unhealthy_threshold = 2
   }
 }
