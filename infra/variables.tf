@@ -16,7 +16,7 @@ variable "vpc_cidr" {
 
   validation {
     condition     = can(cidrnetmask(var.vpc_cidr))
-    error_message = "Must be a valid CIDR notation."
+    error_message = "vpc_cidr must be a valid CIDR."
   }
 }
 
@@ -28,10 +28,11 @@ variable "instance_type" {
 
 variable "ami_id" {
   type        = string
-  description = "AMI ID for EC2 instances"
+  description = "AMI ID override; leave empty to use latest Amazon Linux 2"
+  default     = ""
 }
 
 variable "acm_certificate_arn" {
   type        = string
-  description = "ACM certificate ARN for ALB HTTPS (443)"
+  description = "ACM certificate ARN for ALB HTTPS (443). Must be in the same region."
 }

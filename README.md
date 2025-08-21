@@ -91,3 +91,6 @@ Pipeline config is under `.github/workflows/ci-cd.yml`.
 cd infra
 terraform init
 terraform apply -var="name=saas" -var="aws_region=us-east-1"
+or
+terraform apply -var="aws_region=us-east-1" -var="acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/xxxx"
+
