@@ -42,7 +42,7 @@ Key business benefits:
 ### Project Structure
 
 ```bash
-saas-modernization-infra-v3-prod/
+saas-modernization-infra-prod/
 ├─ infra/
 │  ├─ provider.tf                 # TF & AWS provider
 │  ├─ variables.tf                # name, aws_region, vpc_cidr, ami, instance_type
@@ -94,3 +94,9 @@ terraform apply -var="name=saas" -var="aws_region=us-east-1"
 or
 terraform apply -var="aws_region=us-east-1" -var="acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/xxxx"
 
+terraform plan  -var="aws_region=us-east-1" ^
+  -var="acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+
+terraform apply -auto-approve ^
+  -var="aws_region=us-east-1" ^
+  -var="acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"

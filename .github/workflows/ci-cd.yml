@@ -1,9 +1,20 @@
 name: CI/CD (prod-ready)
+
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      rollback_tag:
+        description: "Tag to rollback to (default: latest)"
+        required: false
+        default: "latest"
 
-permissions: { id-token: write, contents: read }
+permissions:
+  id-token: write
+  contents: read
 
 env:
   AWS_REGION: us-east-1
@@ -14,43 +25,88 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ${{ env.ROLE_TO_ASSUME }}, aws-region: ${{ env.AWS_REGION }} 
-      - uses: aws-actions/amazon-ecr-login@v2
-      - run: |
-          docker build -t $ECR_REPO:${{ github.sha }} ./app
-          docker tag $ECR_REPO:${{ github.sha }} $ECR_REPO:latest
-          docker push $ECR_REPO:${{ github.sha }}
-          docker push $ECR_REPO:latest
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t "$ECR_REPO:${{ github.sha }}" ./app
+          docker tag "$ECR_REPO:${{ github.sha }}" "$ECR_REPO:latest"
+          docker push "$ECR_REPO:${{ github.sha }}"
+          docker push "$ECR_REPO:latest"
 
   deploy-staging:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ${{ env.ROLE_TO_ASSUME }}, aws-region: ${{ env.AWS_REGION } } 
-      - run: aws ssm put-parameter --name "/saas/saas/imageTag/staging" --type "String" --overwrite --value "${{ github.sha }}"
-      - run: |
-          aws ssm send-command             --document-name "AWS-RunShellScript"             --targets "Key=tag:Name,Values=saas-staging"             --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':'${{ github.sha }}'", "docker rm -f app || true", "docker run -d --name app -p 80:80 '$ECR_REPO':'${{ github.sha }}'"]'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update SSM param (staging)
+        run: |
+          aws ssm put-parameter \
+            --name "/saas/saas/imageTag/staging" \
+            --type "String" --overwrite \
+            --value "${{ github.sha }}"
+
+      - name: Deploy to Staging
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Name,Values=saas-staging" \
+            --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':'${{ github.sha }}'","docker rm -f app || true","docker run -d --name app -p 80:80 '$ECR_REPO':'${{ github.sha }}'"]'
 
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ${{ env.ROLE_TO_ASSUME }}, aws-region: ${{ env.AWS_REGION } } 
-      - run: aws ssm put-parameter --name "/saas/saas/imageTag/prod" --type "String" --overwrite --value "${{ github.sha }}"
-      - run: |
-          aws ssm send-command             --document-name "AWS-RunShellScript"             --targets "Key=tag:Name,Values=saas-production"             --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':'${{ github.sha }}'", "docker rm -f app || true", "docker run -d --name app -p 80:80 '$ECR_REPO':'${{ github.sha }}'"]'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update SSM param (prod)
+        run: |
+          aws ssm put-parameter \
+            --name "/saas/saas/imageTag/prod" \
+            --type "String" --overwrite \
+            --value "${{ github.sha }}"
+
+      - name: Deploy to Production
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Name,Values=saas-production" \
+            --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':'${{ github.sha }}'","docker rm -f app || true","docker run -d --name app -p 80:80 '$ECR_REPO':'${{ github.sha }}'"]'
 
   rollback:
     runs-on: ubuntu-latest
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ${{ env.ROLE_TO_ASSUME }}, aws-region: ${{ env.AWS_REGION } } 
-      - run: |
-          PREV_TAG=${{ github.event.inputs.rollback_tag || 'latest' }}
-          aws ssm send-command             --document-name "AWS-RunShellScript"             --targets "Key=tag:Name,Values=saas-production"             --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':'$PREV_TAG'", "docker rm -f app || true", "docker run -d --name app -p 80:80 '$ECR_REPO':'$PREV_TAG'"]'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Rollback Production
+        env:
+          PREV_TAG: ${{ github.event.inputs.rollback_tag || 'latest' }}
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Name,Values=saas-production" \
+            --parameters 'commands=["aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REPO'","docker pull '$ECR_REPO':''$PREV_TAG''","docker rm -f app || true","docker run -d --name app -p 80:80 '$ECR_REPO':''$PREV_TAG''"]'
