@@ -1,4 +1,5 @@
 # SaaS Infrastructure Automation & Deployment
+<iframe width="768" height="432" src="https://miro.com/app/live-embed/uXjVJR_35HQ=/?embedMode=view_only_without_ui&moveToViewport=-1247,-497,967,458&embedId=715496053132" frameborder="0" scrolling="no" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
 
 ## Overview
 This repo contains Terraform IaC + GitHub Actions pipeline to provision and deploy a SaaS app on AWS.
