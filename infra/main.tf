@@ -52,7 +52,7 @@ resource "aws_subnet" "private" {
 # HA NAT: one per AZ (costly but resilient). If you want single NAT, set count=1 and use public[0].
 resource "aws_eip" "nat" {
   count  = 2
-  domain = "vpc"   # vpc = true yerine
+  domain = "vpc" # vpc = true yerine
 }
 
 

@@ -1,7 +1,12 @@
+############################################
+# Security Groups
+############################################
+
 # ALB Security Group – public 80 (redirect) + 443 (HTTPS)
 resource "aws_security_group" "alb_sg" {
-  name   = "${var.name}-alb-sg"
-  vpc_id = aws_vpc.vpc.id
+  name        = "${var.name}-alb-sg"
+  description = "ALB SG: allow 80/443 from internet"
+  vpc_id      = aws_vpc.vpc.id
 
   ingress {
     description = "HTTP for redirect to HTTPS"
@@ -20,19 +25,23 @@ resource "aws_security_group" "alb_sg" {
   }
 
   egress {
+    description = "Allow all egress"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "${var.name}-alb-sg" }
+  tags = {
+    Name = "${var.name}-alb-sg"
+  }
 }
 
-# App Security Group – only from ALB SG (80 + 443 for future HTTPS to instances)
+# App Security Group – only from ALB SG (80 + 443 for future TLS to instances)
 resource "aws_security_group" "app_sg" {
-  name   = "${var.name}-app-sg"
-  vpc_id = aws_vpc.vpc.id
+  name        = "${var.name}-app-sg"
+  description = "App SG: allow HTTP/HTTPS only from ALB"
+  vpc_id      = aws_vpc.vpc.id
 
   ingress {
     description     = "HTTP from ALB"
@@ -51,11 +60,14 @@ resource "aws_security_group" "app_sg" {
   }
 
   egress {
+    description = "Allow all egress"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "${var.name}-app-sg" }
+  tags = {
+    Name = "${var.name}-app-sg"
+  }
 }
