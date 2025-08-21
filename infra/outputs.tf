@@ -1,11 +1,2 @@
-output "staging_instance_ip" {
-  value = aws_instance.staging.public_ip
-}
-
-output "production_instance_ip" {
-  value = aws_instance.production.public_ip
-}
-
-output "load_balancer_dns" {
-  value = aws_elb.app_lb.dns_name
-}
+output "alb_dns" { value = aws_lb.alb.dns_name }
+output "ecr_repo_url" { value = aws_ecr_repository.repo.repository_url }
