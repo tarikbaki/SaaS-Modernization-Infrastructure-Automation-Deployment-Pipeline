@@ -135,7 +135,7 @@ resource "aws_instance" "prod" {
 resource "aws_lb" "alb" {
   name               = "${var.name}-alb"
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id] # moved to security_groups.tf
+  security_groups    = [aws_security_group.alb_sg.id] # moved to security_groups.tf 
   subnets            = [for s in aws_subnet.public : s.id]
 }
 
