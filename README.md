@@ -1,5 +1,8 @@
 # SaaS Infrastructure Automation & Deployment
 
+
+🔗 [Architecture Proposal](https://docs.google.com/presentation/d/1_nGMZ7gd_cZ0r2seUki0nRM0GeFvYzW3K8TZHIvS33E/edit?usp=sharing)
+
 ![alt text](image.png)
 
 🔗 [Architecture Diagram (Miro Embed)](https://miro.com/app/live-embed/uXjVJR_35HQ=/?embedMode=view_only_without_ui&moveToViewport=-1247%2C-497%2C967%2C458&embedId=715496053132)
@@ -23,6 +26,26 @@ This repository contains **Terraform IaC** and a **GitHub Actions pipeline** to 
 - **IAM**: EC2 Instance Role with SSM + ECR ReadOnly policies  
 - **ECR**: container image repository  
 - **SSM Parameter Store**: keeps current image tag for staging and production  
+
+saas-modernization-infra/
+├─ infra/
+│  ├─ provider.tf                 # TF & AWS provider
+│  ├─ variables.tf                # name, aws_region, vpc_cidr, ami, instance_type
+│  ├─ main.tf                     # VPC(2 pub+2 priv), IGW, NAT, RTs
+│  │                              # SGs(ALB, EC2), ALB+TG+listener+rule(/staging)
+│  │                              # IAM(EC2 role+SSM+ECR), ECR repo, SSM params
+│  │                              # EC2: staging+prod (private subnets)
+│  └─ outputs.tf                  # alb_dns, ecr_repo_url
+│
+├─ .github/
+│  └─ workflows/
+│     └─ ci-cd.yml                # OIDC auth → ECR push → SSM deploy (stg/prod) → rollback
+│
+├─ app/
+│  ├─ Dockerfile                  # nginx base image
+│  └─ index.html                  # static placeholder
+│
+└─ README.md                      # setup, secrets, deploy/rollback, security notes
 
 Terraform code is under `/infra`.
 
