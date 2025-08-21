@@ -1,13 +1,19 @@
 ############################################
 # Data sources
 ############################################
-data "aws_availability_zones" "az" { state = "available" }
+data "aws_availability_zones" "az" {
+  state = "available"
+}
 
 # Amazon Linux 2 AMI fallback (region-aware)
 data "aws_ami" "al2" {
   most_recent = true
   owners      = ["amazon"]
-  filter { name = "name" values = ["amzn2-ami-hvm-*-x86_64-gp2"] }
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
 }
 
 ############################################
@@ -17,10 +23,12 @@ resource "aws_vpc" "vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = { Name = "${var.name}-vpc" }
+  tags                 = { Name = "${var.name}-vpc" }
 }
 
-resource "aws_internet_gateway" "igw" { vpc_id = aws_vpc.vpc.id }
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+}
 
 # Public subnets (2AZ)
 resource "aws_subnet" "public" {
@@ -29,7 +37,7 @@ resource "aws_subnet" "public" {
   cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
   availability_zone       = data.aws_availability_zones.az.names[count.index]
   map_public_ip_on_launch = true
-  tags = { Name = "${var.name}-public-${count.index}" }
+  tags                    = { Name = "${var.name}-public-${count.index}" }
 }
 
 # Private subnets (2AZ)
@@ -38,11 +46,15 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
   availability_zone = data.aws_availability_zones.az.names[count.index]
-  tags = { Name = "${var.name}-private-${count.index}" }
+  tags              = { Name = "${var.name}-private-${count.index}" }
 }
 
 # HA NAT: one per AZ (costly but resilient). If you want single NAT, set count=1 and use public[0].
-resource "aws_eip" "nat" { count = 2 vpc = true }
+resource "aws_eip" "nat" {
+  count  = 2
+  domain = "vpc"   # vpc = true yerine
+}
+
 
 resource "aws_nat_gateway" "nat" {
   count         = 2
@@ -54,8 +66,13 @@ resource "aws_nat_gateway" "nat" {
 # Public route table (shared)
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
-  route { cidr_block = "0.0.0.0/0" gateway_id = aws_internet_gateway.igw.id }
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
 }
+
 resource "aws_route_table_association" "pub_assoc" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id
@@ -66,11 +83,13 @@ resource "aws_route_table_association" "pub_assoc" {
 resource "aws_route_table" "private" {
   count  = 2
   vpc_id = aws_vpc.vpc.id
+
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat[count.index].id
   }
 }
+
 resource "aws_route_table_association" "priv_assoc" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
@@ -85,8 +104,8 @@ resource "aws_iam_role" "ec2_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
-      Action = "sts:AssumeRole",
+      Effect    = "Allow",
+      Action    = "sts:AssumeRole",
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
@@ -112,7 +131,11 @@ resource "aws_iam_instance_profile" "profile" {
 ############################################
 resource "aws_ecr_repository" "repo" {
   name = "${var.name}-app"
-  image_scanning_configuration { scan_on_push = true }
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
   force_delete = true
 }
 
@@ -138,7 +161,7 @@ resource "aws_instance" "staging" {
   iam_instance_profile   = aws_iam_instance_profile.profile.name
   vpc_security_group_ids = [aws_security_group.app_sg.id] # defined in security_groups.tf
   user_data              = local.user_data
-  tags = { Name = "${var.name}-staging" }
+  tags                   = { Name = "${var.name}-staging" }
 }
 
 resource "aws_instance" "prod" {
@@ -148,7 +171,7 @@ resource "aws_instance" "prod" {
   iam_instance_profile   = aws_iam_instance_profile.profile.name
   vpc_security_group_ids = [aws_security_group.app_sg.id] # defined in security_groups.tf
   user_data              = local.user_data
-  tags = { Name = "${var.name}-production" }
+  tags                   = { Name = "${var.name}-production" }
 }
 
 ############################################
@@ -166,6 +189,7 @@ resource "aws_lb_target_group" "tg_prod" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.vpc.id
+
   health_check {
     path                = "/"
     matcher             = "200-399"
@@ -181,6 +205,7 @@ resource "aws_lb_target_group" "tg_stg" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.vpc.id
+
   health_check {
     path                = "/"
     matcher             = "200-399"
@@ -208,6 +233,7 @@ resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
   protocol          = "HTTP"
+
   default_action {
     type = "redirect"
     redirect {
@@ -237,8 +263,17 @@ resource "aws_lb_listener" "https" {
 resource "aws_lb_listener_rule" "staging_rule_https" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 10
-  action { type = "forward" target_group_arn = aws_lb_target_group.tg_stg.arn }
-  condition { path_pattern { values = ["/staging*", "/stg*"] } }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_stg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/staging*", "/stg*"]
+    }
+  }
 }
 
 ############################################
