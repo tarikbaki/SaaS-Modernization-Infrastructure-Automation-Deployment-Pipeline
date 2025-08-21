@@ -1,0 +1,30 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run tests
+        run: echo "Running tests (placeholder)"
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ AWS account will be set as secret  }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }} ./app
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push to ECR
+        run: |
+          docker push ${{ AWS account will be set as secret }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }}
+
+
