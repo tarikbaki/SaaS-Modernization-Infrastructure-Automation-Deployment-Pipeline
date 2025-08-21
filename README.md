@@ -42,25 +42,31 @@ Key business benefits:
 ### Project Structure
 
 ```bash
-saas-modernization-infra-prod/
+Saas-Modernization-infra-prod/
 ├─ infra/
-│  ├─ provider.tf                 # TF & AWS provider
-│  ├─ variables.tf                # name, aws_region, vpc_cidr, ami, instance_type
-│  ├─ main.tf                     # VPC(2 pub+2 priv), IGW, NAT, RTs
-│  │                              # SGs(ALB, EC2), ALB+TG+listener+rule(/staging)
-│  │                              # IAM(EC2 role+SSM+ECR), ECR repo, SSM params
-│  │                              # EC2: staging+prod (private subnets)
-│  └─ outputs.tf                  # alb_dns, ecr_repo_url
+│  ├─ provider.tf                  # Terraform & AWS provider (required_version, backend optional, region)
+│  ├─ variables.tf                 # name, aws_region, vpc_cidr, ami_id, instance_type, acm_certificate_arn
+│  ├─ main.tf                      # VPC(2 public + 2 private), IGW, NAT (per AZ), route tables
+│  │                                # IAM (EC2 role + SSM + ECR), ECR repo, SSM params
+│  │                                # EC2: staging + prod (private subnets)
+│  │                                # ALB + target groups + HTTP→HTTPS redirect + HTTPS listener + /staging rule
+│  ├─ security_groups.tf           # SGs: alb_sg (80/443 public), app_sg (80 from ALB only, opt. 443)
+│  ├─ rds_aurora.tf                # Aurora MySQL cluster (writer + reader), SG, subnet group, secret
+│  ├─ redis.tf                     # ElastiCache Redis replication group, SG, subnet group
+│  ├─ outputs.tf                   # alb_dns, ecr_repo_url, aurora endpoint, redis endpoint
+│  └─ prod.auto.tfvars             # region, certificate ARN, feature toggles, db/redis sizing
 │
 ├─ .github/
 │  └─ workflows/
-│     └─ ci-cd.yml                # OIDC auth → ECR push → SSM deploy (stg/prod) → rollback
+│     └─ ci-cd.yml                 # OIDC auth → ECR build/push → SSM update → deploy (staging/prod) → rollback
 │
 ├─ app/
-│  ├─ Dockerfile                  # nginx base image
-│  └─ index.html                  # static placeholder
+│  ├─ Dockerfile                   # nginx base image
+│  └─ index.html                   # static placeholder
 │
-└─ README.md                      # setup, secrets, deploy/rollback, security notes
+└─ README.md                       # overview, setup, secrets, deploy/rollback, security notes
+
+
 ```
 
 Terraform code is under `/infra`.
