@@ -1,5 +1,12 @@
 # SaaS Infrastructure Automation & Deployment
 
+---
+
+## Overview
+This repository contains **Terraform IaC** and a **GitHub Actions pipeline** to provision and deploy a SaaS application on AWS in a secure, automated, and scalable way.
+
+---
+
 ## Business Impact
 
 This project enables SaaS companies to accelerate **time-to-market** by providing an automated, secure, and scalable AWS infrastructure.  
@@ -18,11 +25,6 @@ Key business benefits:
 🔗 [Architecture Diagram (Miro Embed)](https://miro.com/app/live-embed/uXjVJR_35HQ=/?embedMode=view_only_without_ui&moveToViewport=-1247%2C-497%2C967%2C458&embedId=715496053132)
 
 🔗 [Miro Board Link](https://miro.com/welcomeonboard/dzBvTmxpak1tRmNVamo4eHBiaFZhelNjb2MxQlZEVkZXM25YdVJmZkRPZHd6U2dJdFR5YTFkekxpK0tmOWFTRWd0N2szeHlZNjlSK25UdzlaQTFLZmFmay9RbWkyS052OUVYcjRkTGNBbzNiZUhtT2JWcmNveXN1WlJGelNtTi90R2lncW1vRmFBVnlLcVJzTmdFdlNRPT0hdjE=?share_link_id=342912202277)
-
----
-
-## Overview
-This repository contains **Terraform IaC** and a **GitHub Actions pipeline** to provision and deploy a SaaS application on AWS in a secure, automated, and scalable way.
 
 ---
 
