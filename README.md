@@ -1,5 +1,7 @@
 # SaaS Infrastructure Automation & Deployment
 
+![alt text](image.png)
+
 https://miro.com/app/live-embed/uXjVJR_35HQ=/?embedMode=view_only_without_ui&moveToViewport=-1247%2C-497%2C967%2C458&embedId=715496053132
 
 https://miro.com/welcomeonboard/dzBvTmxpak1tRmNVamo4eHBiaFZhelNjb2MxQlZEVkZXM25YdVJmZkRPZHd6U2dJdFR5YTFkekxpK0tmOWFTRWd0N2szeHlZNjlSK25UdzlaQTFLZmFmay9RbWkyS052OUVYcjRkTGNBbzNiZUhtT2JWcmNveXN1WlJGelNtTi90R2lncW1vRmFBVnlLcVJzTmdFdlNRPT0hdjE=?share_link_id=342912202277
@@ -43,3 +45,7 @@ terraform apply
 - All secrets stored in AWS Secrets Manager / GitHub Secrets
 - No hardcoded credentials
 - Encrypted communication (HTTPS only)
+
+
+
+![https://d1.awsstatic.com/product-page-diagram_Amazon-ECS%402x.0d872eb6fb782ddc733a27d2bb9db795fed71185%20(2).0033d27bf1c708546c00befa892639c61a483269.4ad7c71d50aa1d7bddbda52c68aa28104437e2d4.png](image-1.png)
