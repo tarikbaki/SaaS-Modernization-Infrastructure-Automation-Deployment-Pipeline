@@ -4,7 +4,7 @@ resource "aws_vpc" "vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = { Name = "${var.name}-vpc" }
+  tags                 = { Name = "${var.name}-vpc" }
 }
 
 resource "aws_internet_gateway" "igw" { vpc_id = aws_vpc.vpc.id }
@@ -16,7 +16,7 @@ resource "aws_subnet" "public" {
   cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
   availability_zone       = data.aws_availability_zones.az.names[count.index]
   map_public_ip_on_launch = true
-  tags = { Name = "${var.name}-public-${count.index}" }
+  tags                    = { Name = "${var.name}-public-${count.index}" }
 }
 
 # Private subnets (2AZ)
@@ -25,7 +25,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
   availability_zone = data.aws_availability_zones.az.names[count.index]
-  tags = { Name = "${var.name}-private-${count.index}" }
+  tags              = { Name = "${var.name}-private-${count.index}" }
 }
 
 resource "aws_eip" "nat" { vpc = true }
@@ -69,8 +69,8 @@ resource "aws_iam_role" "ec2_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
-      Action = "sts:AssumeRole",
+      Effect    = "Allow",
+      Action    = "sts:AssumeRole",
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
@@ -118,7 +118,7 @@ resource "aws_instance" "staging" {
   iam_instance_profile   = aws_iam_instance_profile.profile.name
   vpc_security_group_ids = [aws_security_group.app_sg.id] # moved to security_groups.tf
   user_data              = local.user_data
-  tags = { Name = "${var.name}-staging" }
+  tags                   = { Name = "${var.name}-staging" }
 }
 
 resource "aws_instance" "prod" {
@@ -128,7 +128,7 @@ resource "aws_instance" "prod" {
   iam_instance_profile   = aws_iam_instance_profile.profile.name
   vpc_security_group_ids = [aws_security_group.app_sg.id] # moved to security_groups.tf
   user_data              = local.user_data
-  tags = { Name = "${var.name}-production" }
+  tags                   = { Name = "${var.name}-production" }
 }
 
 # ALB + TGs + Listener
@@ -193,11 +193,48 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = var.acm_certificate_arn
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_prod.arn
+  }
+}
+
 resource "aws_lb_listener_rule" "staging_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 10
-  action { type = "forward" target_group_arn = aws_lb_target_group.tg_stg.arn }
-  condition { path_pattern { values = ["/staging*", "/stg*"] } }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_stg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/staging*", "/stg*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "staging_rule_https" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_stg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/staging*", "/stg*"]
+    }
+  }
 }
 
 # SSM parameters for image tags (updated by pipeline)
