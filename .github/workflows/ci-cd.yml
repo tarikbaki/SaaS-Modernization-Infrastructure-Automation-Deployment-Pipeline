@@ -18,14 +18,14 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ AWS account will be set as secret }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }} ./app
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }} ./app
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Push to ECR
         run: |
-          docker push ${{ AWS account will be set as secret }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/saas-app:${{ github.sha }}
 
   deploy-staging:
     if: github.ref == 'refs/heads/develop'
