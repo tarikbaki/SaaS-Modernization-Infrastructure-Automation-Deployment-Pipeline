@@ -1,5 +1,18 @@
+############################################
+# Data sources
+############################################
 data "aws_availability_zones" "az" { state = "available" }
 
+# Amazon Linux 2 AMI fallback (region-aware)
+data "aws_ami" "al2" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter { name = "name" values = ["amzn2-ami-hvm-*-x86_64-gp2"] }
+}
+
+############################################
+# VPC & Networking
+############################################
 resource "aws_vpc" "vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -28,21 +41,20 @@ resource "aws_subnet" "private" {
   tags = { Name = "${var.name}-private-${count.index}" }
 }
 
-resource "aws_eip" "nat" { vpc = true }
+# HA NAT: one per AZ (costly but resilient). If you want single NAT, set count=1 and use public[0].
+resource "aws_eip" "nat" { count = 2 vpc = true }
 
 resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
+  count         = 2
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
   depends_on    = [aws_internet_gateway.igw]
 }
 
-# Routes
+# Public route table (shared)
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
+  route { cidr_block = "0.0.0.0/0" gateway_id = aws_internet_gateway.igw.id }
 }
 resource "aws_route_table_association" "pub_assoc" {
   count          = 2
@@ -50,20 +62,24 @@ resource "aws_route_table_association" "pub_assoc" {
   route_table_id = aws_route_table.public.id
 }
 
+# Private route table per AZ -> each NAT in same AZ
 resource "aws_route_table" "private" {
+  count  = 2
   vpc_id = aws_vpc.vpc.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+    nat_gateway_id = aws_nat_gateway.nat[count.index].id
   }
 }
 resource "aws_route_table_association" "priv_assoc" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
+############################################
 # IAM for EC2 (SSM + ECR ReadOnly)
+############################################
 resource "aws_iam_role" "ec2_role" {
   name = "${var.name}-ec2-role"
   assume_role_policy = jsonencode({
@@ -91,14 +107,18 @@ resource "aws_iam_instance_profile" "profile" {
   role = aws_iam_role.ec2_role.name
 }
 
-# ECR repo
+############################################
+# ECR repository
+############################################
 resource "aws_ecr_repository" "repo" {
   name = "${var.name}-app"
   image_scanning_configuration { scan_on_push = true }
   force_delete = true
 }
 
+############################################
 # EC2 (private subnets)
+############################################
 locals {
   user_data = <<-EOF
     #!/bin/bash
@@ -112,30 +132,32 @@ locals {
 }
 
 resource "aws_instance" "staging" {
-  ami                    = var.ami_id
+  ami                    = var.ami_id != "" ? var.ami_id : data.aws_ami.al2.id
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.private[0].id
   iam_instance_profile   = aws_iam_instance_profile.profile.name
-  vpc_security_group_ids = [aws_security_group.app_sg.id] # moved to security_groups.tf
+  vpc_security_group_ids = [aws_security_group.app_sg.id] # defined in security_groups.tf
   user_data              = local.user_data
   tags = { Name = "${var.name}-staging" }
 }
 
 resource "aws_instance" "prod" {
-  ami                    = var.ami_id
+  ami                    = var.ami_id != "" ? var.ami_id : data.aws_ami.al2.id
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.private[1].id
   iam_instance_profile   = aws_iam_instance_profile.profile.name
-  vpc_security_group_ids = [aws_security_group.app_sg.id] # moved to security_groups.tf
+  vpc_security_group_ids = [aws_security_group.app_sg.id] # defined in security_groups.tf
   user_data              = local.user_data
   tags = { Name = "${var.name}-production" }
 }
 
-# ALB + TGs + Listener
+############################################
+# ALB + Target Groups + Listeners (HTTPS + redirect)
+############################################
 resource "aws_lb" "alb" {
   name               = "${var.name}-alb"
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id] # moved to security_groups.tf 
+  security_groups    = [aws_security_group.alb_sg.id] # defined in security_groups.tf
   subnets            = [for s in aws_subnet.public : s.id]
 }
 
@@ -144,7 +166,6 @@ resource "aws_lb_target_group" "tg_prod" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.vpc.id
-
   health_check {
     path                = "/"
     matcher             = "200-399"
@@ -160,7 +181,6 @@ resource "aws_lb_target_group" "tg_stg" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.vpc.id
-
   health_check {
     path                = "/"
     matcher             = "200-399"
@@ -183,24 +203,47 @@ resource "aws_lb_target_group_attachment" "attach_stg" {
   port             = 80
 }
 
-resource "aws_lb_listener" "http" {
+# 80 → 443 redirect
+resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
   protocol          = "HTTP"
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# HTTPS (443) listener with ACM cert
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-Ext-2018-06"
+  certificate_arn   = var.acm_certificate_arn
+
+  # default → prod
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.tg_prod.arn
   }
 }
 
-resource "aws_lb_listener_rule" "staging_rule" {
-  listener_arn = aws_lb_listener.http.arn
+# Staging path rule on HTTPS listener
+resource "aws_lb_listener_rule" "staging_rule_https" {
+  listener_arn = aws_lb_listener.https.arn
   priority     = 10
   action { type = "forward" target_group_arn = aws_lb_target_group.tg_stg.arn }
   condition { path_pattern { values = ["/staging*", "/stg*"] } }
 }
 
+############################################
 # SSM parameters for image tags (updated by pipeline)
+############################################
 resource "aws_ssm_parameter" "img_tag_prod" {
   name  = "/saas/${var.name}/imageTag/prod"
   type  = "String"
