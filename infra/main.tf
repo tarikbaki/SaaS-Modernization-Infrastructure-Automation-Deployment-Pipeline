@@ -16,6 +16,17 @@ data "aws_ami" "al2" {
   }
 }
 
+# Short name + random suffix for AWS name length limits
+locals {
+  short_name = substr(var.name, 0, 20) # ilk 20 karakter
+}
+
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
 ############################################
 # VPC & Networking
 ############################################
