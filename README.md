@@ -1,5 +1,15 @@
 # SaaS Infrastructure Automation & Deployment
 
+## Business Impact
+
+This project enables SaaS companies to accelerate **time-to-market** by providing an automated, secure, and scalable AWS infrastructure.  
+Key business benefits:  
+- **Faster onboarding & releases**: GitHub Actions pipeline shortens deployment cycles from days to minutes.  
+- **Reduced operational risk**: Rollback and multi-AZ design minimize downtime and service disruption.  
+- **Cost control**: NAT, auto-scaling ready subnets, and least-privilege IAM ensure optimized spend without sacrificing reliability.  
+- **Compliance & security by design**: TLS (443), secret management via AWS SSM/Secrets Manager, and IAM roles align with SaaS security standards (ISO, PCI-DSS readiness).  
+- **Customer trust**: High availability and secure deployments improve end-user confidence and SLA adherence.  
+
 
 🔗 [Architecture Proposal](https://docs.google.com/presentation/d/1_nGMZ7gd_cZ0r2seUki0nRM0GeFvYzW3K8TZHIvS33E/edit?usp=sharing)
 
