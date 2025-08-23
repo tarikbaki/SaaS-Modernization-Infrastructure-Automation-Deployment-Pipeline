@@ -26,6 +26,7 @@ Key business benefits:
 
 🔗 [Miro Board Link](https://miro.com/welcomeonboard/dzBvTmxpak1tRmNVamo4eHBiaFZhelNjb2MxQlZEVkZXM25YdVJmZkRPZHd6U2dJdFR5YTFkekxpK0tmOWFTRWd0N2szeHlZNjlSK25UdzlaQTFLZmFmay9RbWkyS052OUVYcjRkTGNBbzNiZUhtT2JWcmNveXN1WlJGelNtTi90R2lncW1vRmFBVnlLcVJzTmdFdlNRPT0hdjE=?share_link_id=342912202277)
 
+![alt text](image1.png)
 ---
 
 ## Infrastructure
@@ -65,8 +66,6 @@ Saas-Modernization-infra-prod/
 │  └─ index.html                   # static placeholder
 │
 └─ README.md                       # overview, setup, secrets, deploy/rollback, security notes
-
-
 ```
 
 Terraform code is under `/infra`.
@@ -106,3 +105,4 @@ terraform plan  -var="aws_region=us-east-1" ^
 terraform apply -auto-approve ^
   -var="aws_region=us-east-1" ^
   -var="acm_certificate_arn=arn:aws:acm:us-east-1:123456789012:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+
